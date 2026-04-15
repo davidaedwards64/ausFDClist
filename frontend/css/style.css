@@ -39,6 +39,7 @@ a:hover { text-decoration: underline; }
 }
 .header-inner {
   padding: 13px 24px;
+  text-align: center;
 }
 .header-inner h1 {
   font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
