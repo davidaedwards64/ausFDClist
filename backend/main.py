@@ -1,10 +1,9 @@
 """FastAPI application: serves the chat UI and SSE /api/chat endpoint."""
 
 from pathlib import Path
-from urllib.parse import quote
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.agent import run_agent
@@ -32,22 +31,6 @@ async def serve_signin():
 @app.get("/auth/callback", response_class=HTMLResponse)
 async def serve_callback():
     return HTMLResponse((FRONTEND_DIR / "callback.html").read_text(encoding="utf-8"))
-
-
-@app.get("/auth/signout")
-async def signout(id_token_hint: str = ""):
-    """Construct Okta RP-initiated logout URL server-side and redirect."""
-    s = get_settings()
-    if id_token_hint and s.okta_domain and s.okta_redirect_uri:
-        origin = s.okta_redirect_uri.replace("/auth/callback", "")
-        post_logout_uri = f"{origin}/auth/signin"
-        logout_url = (
-            f"{s.okta_domain}/oauth2/v1/logout"
-            f"?id_token_hint={quote(id_token_hint, safe='')}"
-            f"&post_logout_redirect_uri={quote(post_logout_uri, safe='')}"
-        )
-        return RedirectResponse(logout_url)
-    return RedirectResponse("/auth/signin")
 
 
 @app.get("/api/config", response_model=AuthConfigResponse)

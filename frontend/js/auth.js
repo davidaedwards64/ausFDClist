@@ -68,12 +68,8 @@ window.Auth = (() => {
   }
 
   function logout() {
-    const token = getIdToken();
     sessionStorage.clear();
-    const url = token
-      ? `/auth/signout?id_token_hint=${encodeURIComponent(token)}`
-      : '/auth/signin';
-    window.location.replace(url);
+    window.location.replace('/auth/signin');
   }
 
   async function initiateLogin() {
