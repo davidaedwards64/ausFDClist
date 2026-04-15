@@ -5,7 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     anthropic_api_key: str
     php_api_base_url: str = "https://davidaedwards.com/ausfdclist"
-    model: str = "claude-opus-4-6"
+    model: str = "claude-haiku-4-5-20251001"
     max_tokens: int = 4096
 
     class Config:
