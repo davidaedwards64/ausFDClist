@@ -101,14 +101,9 @@ function action_search_covers(): void {
     $params = [];
 
     if ($year !== null && $year !== '') {
-        // Support exact year (4 digits) or decade prefix (e.g. "198" → LIKE '198%')
-        if (strlen($year) === 4 && ctype_digit($year)) {
-            $where[]  = 'YEAR(c.Date) = :year';
-            $params[':year'] = (int) $year;
-        } else {
-            $where[]  = 'YEAR(c.Date) LIKE :year';
-            $params[':year'] = $year . '%';
-        }
+        // Date column is yyyy-mm-dd, so LIKE prefix works for both full year and decade
+        $where[]  = 'c.Date LIKE :year';
+        $params[':year'] = $year . '%';
     }
 
     if ($text !== null && $text !== '') {
@@ -182,13 +177,9 @@ function action_search_issues(): void {
     $params = [];
 
     if ($year !== null && $year !== '') {
-        if (strlen($year) === 4 && ctype_digit($year)) {
-            $where[]  = 'YEAR(Date) = :year';
-            $params[':year'] = (int) $year;
-        } else {
-            $where[]  = 'YEAR(Date) LIKE :year';
-            $params[':year'] = $year . '%';
-        }
+        // Date column is yyyy-mm-dd, so LIKE prefix works for both full year and decade
+        $where[]  = 'Date LIKE :year';
+        $params[':year'] = $year . '%';
     }
 
     if ($text !== null && $text !== '') {
