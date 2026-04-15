@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from typing import AsyncGenerator, Dict, List
+from typing import AsyncGenerator, Dict, List, Optional
 
 import anthropic
 
@@ -119,14 +119,14 @@ You are an expert assistant for the Australian First Day Cover (FDC) collection 
 _sessions: Dict[str, List[Dict]] = {}
 
 
-def _get_or_create_session(session_id: str | None) -> tuple[str, List[Dict]]:
+def _get_or_create_session(session_id: Optional[str]) -> tuple[str, List[Dict]]:
     if session_id is None or session_id not in _sessions:
         session_id = session_id or str(uuid.uuid4())
         _sessions[session_id] = []
     return session_id, _sessions[session_id]
 
 
-async def run_agent(message: str, session_id: str | None) -> AsyncGenerator[str, None]:
+async def run_agent(message: str, session_id: Optional[str]) -> AsyncGenerator[str, None]:
     """
     Run the agentic loop and yield newline-delimited JSON events:
       {"type": "session", "session_id": "..."}
