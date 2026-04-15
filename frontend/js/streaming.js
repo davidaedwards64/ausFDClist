@@ -12,27 +12,37 @@ window.FDCStream = (() => {
   const PHP_BASE = 'https://davidaedwards.com/ausfdclist';
 
   // ── Image URL helpers ────────────────────────────────────────────────────
-  function coverImgUrl(filename) {
+  // Cover images are stored in year-based subdirectories: images/{year}/{filename}
+  function coverImgUrl(filename, coverId) {
     if (!filename) return null;
-    return `${PHP_BASE}/images/covers/${filename}`;
+    const year = coverId ? coverId.substring(0, 4) : '';
+    return year
+      ? `${PHP_BASE}/images/${year}/${filename}`
+      : `${PHP_BASE}/images/${filename}`;
   }
   function stampImgUrl(filename) {
     if (!filename) return null;
-    return `${PHP_BASE}/images/stamps/${filename}`;
+    return `${PHP_BASE}/images/${filename}`;
   }
 
-  // ── Source → badge CSS class ─────────────────────────────────────────────
+  // ── Source code → badge CSS class ───────────────────────────────────────
+  // Source column stores a single letter (A, T, W, etc.)
   function sourceBadgeClass(source) {
-    if (!source) return 'badge-other';
-    const s = source.toLowerCase();
-    if (s.includes('australia post') || s.includes('auspost')) return 'badge-auspost';
-    if (s.includes('apta')) return 'badge-apta';
-    if (s.includes('ampca')) return 'badge-ampca';
-    if (s.includes('pnc')) return 'badge-pnc';
-    if (s.includes('philatelic')) return 'badge-philatelic';
-    if (s.includes('maxicard')) return 'badge-maxicard';
-    if (s.includes('coin')) return 'badge-coin';
-    return 'badge-other';
+    if (!source) return 'badge-src-O';
+    return `badge-src-${source.toUpperCase()}`;
+  }
+
+  // Source code → human-readable name
+  const SOURCE_NAMES = {
+    A: 'Australia Post', C: 'Collector (AP)', G: 'PMG Shield', Z: 'PMG Hermes',
+    S: 'Special Issue',  T: 'Challis',        E: 'Excelsior',  U: 'Guthrie',
+    H: 'Haslems',        J: 'John Gower',     M: 'Mappin & Curran', L: 'Miller Bros',
+    Y: 'S Mitchell',     P: 'Parade/ACCA',    Q: 'Qld Stamp Mart',  R: 'Royal',
+    B: 'Bodin/SCP',      W: 'Wesley',         I: 'Wide World',  X: 'Pharmaceutical',
+    O: 'Other',
+  };
+  function sourceName(code) {
+    return SOURCE_NAMES[code] || code || 'Unknown';
   }
 
   // ── Cover card HTML ──────────────────────────────────────────────────────
@@ -47,7 +57,7 @@ window.FDCStream = (() => {
       imgContainer.className = 'card-images';
       pics.forEach(pic => {
         const img = document.createElement('img');
-        img.src = coverImgUrl(pic);
+        img.src = coverImgUrl(pic, cover.CoverId);
         img.alt = cover.Title || 'FDC image';
         img.loading = 'lazy';
         img.addEventListener('click', () => openModal(img.src));
@@ -85,7 +95,8 @@ window.FDCStream = (() => {
     if (cover.Source) {
       const badge = document.createElement('span');
       badge.className = `badge ${sourceBadgeClass(cover.Source)}`;
-      badge.textContent = cover.Source;
+      badge.title = cover.Source;               // show code on hover
+      badge.textContent = sourceName(cover.Source);
       meta.appendChild(badge);
     }
 

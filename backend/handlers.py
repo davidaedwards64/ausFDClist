@@ -5,16 +5,93 @@ from typing import Any, Dict
 
 from backend.config import get_settings
 
-# Source → color mapping (also returned by list_available_sources)
+# Single-letter source codes (Covers.Source column) → full names
+SOURCE_NAMES: Dict[str, str] = {
+    "A": "Australia Post",
+    "C": "Collector (on AP cover)",
+    "G": "PMG Generic/Shield",
+    "Z": "PMG Generic/Hermes",
+    "S": "Special Issue",
+    "T": "Challis",
+    "E": "Excelsior (Baglin)",
+    "U": "Guthrie",
+    "H": "Haslems Cover Service",
+    "J": "John Gower (pre-WCS)",
+    "M": "Mappin and Curran",
+    "L": "Miller Bros (Orlo-Smith)",
+    "Y": "S Mitchell",
+    "P": "Parade, ACCA (McCallum)",
+    "Q": "Queensland Stamp Mart (?)",
+    "R": "Royal",
+    "B": "Southern Cross Printers (Bodin)",
+    "W": "Wesley (WCS)",
+    "I": "Wide World",
+    "X": "Pharmaceutical",
+    "O": "Other non-AP",
+}
+
+# Source code → UI badge color
 SOURCE_COLORS: Dict[str, str] = {
-    "Australia Post": "#FFD700",
-    "APTA": "#4169E1",
-    "AMPCA": "#228B22",
-    "PNC": "#DC143C",
-    "Philatelic": "#9370DB",
-    "Maxicard": "#FF8C00",
-    "Coin Cover": "#708090",
-    "Other": "#A9A9A9",
+    # Australia Post family (gold/red tones)
+    "A": "#d4a017",
+    "C": "#c8971e",
+    "G": "#b8860b",
+    "Z": "#b8860b",
+    "S": "#8b0000",
+    # Non-AP commercial makers
+    "T": "#2e5fd6",
+    "E": "#1a6b4a",
+    "U": "#4b3a8c",
+    "H": "#c0522a",
+    "J": "#2e8b57",
+    "M": "#6b3a3a",
+    "L": "#3a6b8c",
+    "Y": "#8c6b2e",
+    "P": "#4a7c59",
+    "Q": "#6b4a8c",
+    "R": "#8b2252",
+    "B": "#8c3a3a",
+    "W": "#2e6b9c",
+    "I": "#2e9c8c",
+    "X": "#5a5a6e",
+    "O": "#6b7280",
+}
+
+# Cover type codes (Covers.Type column)
+COVER_TYPES: Dict[str, str] = {
+    "FDC":     "First Day Cover (gummed)",
+    "FDCSA":   "First Day Cover (self-adhesive)",
+    "MSFDC":   "First Day Cover (minisheet)",
+    "FDCBP":   "First Day Cover (booklet pane)",
+    "FDCFR":   "First Day Cover (frama label)",
+    "JIFDC":   "Joint Issue First Day Cover",
+    "JMSFDC":  "Joint Issue FDC (minisheet)",
+    "OCJIFDC": "Other Country Joint Issue FDC",
+    "PFDC":    "Prestige First Day Cover",
+    "SFDC":    "Special First Day Cover",
+    "FDCSet":  "Set of First Day Covers",
+    "PPE":     "Pre-Paid Envelope/Pre-Stamped Envelope",
+    "CC":      "Commemorative Cover (released after FDI)",
+    "PCC":     "Prestige Comm. Cover (released after FDI)",
+    "PNC":     "Philatelic and Numismatic Cover",
+    "SMC":     "Stamp and Medallion Cover",
+}
+
+# Issue type codes — the single letter (t) in IssueId format yyyy-tnn
+ISSUE_TYPES: Dict[str, str] = {
+    "I": "Regular Stamp Issue (gum, p&s) - comm. and defin.",
+    "L": "Stamped Label Issue",
+    "V": "Vending Machine Issued",
+    "F": "Frama Machine Issued",
+    "M": "Other Machine Issued",
+    "C": "Counter Printed Stamp Issue",
+    "Z": "Instant Stamp Issue",
+    "Y": "Personalised Stamp Issue",
+    "O": "Olympic/Comm. Games Special Issue",
+    "X": "Stamp Exhibition Special Issue",
+    "P": "PPE/PSE only (no stamps)",
+    "R": "Reprint/Reissue/Overprint Issue",
+    "S": "Other Special Issue (Souvenir etc.)",
 }
 
 
@@ -74,12 +151,24 @@ async def handle_get_statistics(args: Dict[str, Any]) -> Any:
 async def handle_list_available_sources(_args: Dict[str, Any]) -> Any:
     return {
         "sources": [
-            {"name": name, "color": color}
-            for name, color in SOURCE_COLORS.items()
+            {"code": code, "name": SOURCE_NAMES[code], "color": SOURCE_COLORS[code]}
+            for code in SOURCE_COLORS
+        ],
+        "australia_post_codes": ["A", "C", "G", "Z", "S"],
+        "non_ap_codes": [c for c in SOURCE_COLORS if c not in ("A", "C", "G", "Z", "S")],
+        "cover_types": [
+            {"code": code, "description": desc}
+            for code, desc in COVER_TYPES.items()
+        ],
+        "issue_types": [
+            {"code": code, "description": desc}
+            for code, desc in ISSUE_TYPES.items()
         ],
         "description": (
-            "These are the known cover makers/sources in the database. "
-            "Each is represented by a color badge in the UI."
+            "Source codes are single letters stored in Covers.Source. "
+            "Australia Post family: A, C, G, Z, S. Non-AP makers: all others. "
+            "Cover type codes are stored in Covers.Type. "
+            "Issue type codes are the single letter in IssueId (e.g. 'I' in 2024-I15)."
         ),
     }
 

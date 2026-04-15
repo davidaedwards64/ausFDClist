@@ -14,15 +14,7 @@
   --radius-sm:   6px;
   --shadow:      0 2px 12px rgba(0,0,0,.35);
 
-  /* Source badge colors */
-  --src-auspost:   #e6c200;
-  --src-apta:      #4169e1;
-  --src-ampca:     #228b22;
-  --src-pnc:       #dc143c;
-  --src-philatelic:#9370db;
-  --src-maxicard:  #ff8c00;
-  --src-coin:      #708090;
-  --src-other:     #6b7280;
+
 }
 
 html, body {
@@ -207,15 +199,30 @@ a:hover { text-decoration: underline; }
   text-shadow: 0 1px 2px rgba(0,0,0,.5);
 }
 
-/* Source color badges */
-.badge-auspost    { background: var(--src-auspost);    color: #222; }
-.badge-apta       { background: var(--src-apta); }
-.badge-ampca      { background: var(--src-ampca); }
-.badge-pnc        { background: var(--src-pnc); }
-.badge-philatelic { background: var(--src-philatelic); }
-.badge-maxicard   { background: var(--src-maxicard); }
-.badge-coin       { background: var(--src-coin); }
-.badge-other      { background: var(--src-other); }
+/* Source badge colors — keyed by single-letter source code (Covers.Source)    */
+/* Australia Post family ─────────────────────────────────────────────────────  */
+.badge-src-A { background: #d4a017; color: #222; } /* Australia Post          */
+.badge-src-C { background: #c8971e; color: #222; } /* Collector (on AP)       */
+.badge-src-G { background: #b8860b; color: #fff; } /* PMG Generic/Shield      */
+.badge-src-Z { background: #b8860b; color: #fff; } /* PMG Generic/Hermes      */
+.badge-src-S { background: #8b0000; color: #fff; } /* Special Issue           */
+/* Non-AP commercial makers ──────────────────────────────────────────────────  */
+.badge-src-T { background: #2e5fd6; color: #fff; } /* Challis                 */
+.badge-src-E { background: #1a6b4a; color: #fff; } /* Excelsior (Baglin)      */
+.badge-src-U { background: #4b3a8c; color: #fff; } /* Guthrie                 */
+.badge-src-H { background: #c0522a; color: #fff; } /* Haslems Cover Service   */
+.badge-src-J { background: #2e8b57; color: #fff; } /* John Gower              */
+.badge-src-M { background: #6b3a3a; color: #fff; } /* Mappin and Curran       */
+.badge-src-L { background: #3a6b8c; color: #fff; } /* Miller Bros             */
+.badge-src-Y { background: #8c6b2e; color: #fff; } /* S Mitchell              */
+.badge-src-P { background: #4a7c59; color: #fff; } /* Parade, ACCA            */
+.badge-src-Q { background: #6b4a8c; color: #fff; } /* Qld Stamp Mart          */
+.badge-src-R { background: #8b2252; color: #fff; } /* Royal                   */
+.badge-src-B { background: #8c3a3a; color: #fff; } /* Southern Cross (Bodin)  */
+.badge-src-W { background: #2e6b9c; color: #fff; } /* Wesley (WCS)            */
+.badge-src-I { background: #2e9c8c; color: #fff; } /* Wide World              */
+.badge-src-X { background: #5a5a6e; color: #fff; } /* Pharmaceutical          */
+.badge-src-O { background: #6b7280; color: #fff; } /* Other non-AP            */
 
 .card-stamp-pic {
   width: 100%;
