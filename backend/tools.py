@@ -5,8 +5,11 @@
 #   t    = single-letter issue type (I, L, V, F, M, C, Z, Y, O, X, P, R, S)
 #   nn   = 2-digit sequential number for that year+type
 #
-# CoverId format:  yyyy-tnn-mmm    (e.g. 1966-I01-003, 2024-I15-012)
-#   mmm  = 3-digit sequential number within the issue
+# CoverId format:  yyyy-tnn-seq    where seq is one of:
+#   mm   = 2-digit number          (e.g. 1966-I01-03)
+#   mmm  = 3-digit number          (e.g. 2024-I15-012)
+#   xn   = maker letter + 1 digit  (e.g. 1966-I01-R3)
+#   xnn  = maker letter + 2 digits (e.g. 1966-I01-P02)
 #
 # Join:  SUBSTRING_INDEX(CoverId, '-', 2) = IssueId
 
@@ -111,8 +114,8 @@ TOOLS = [
     {
         "name": "get_cover_details",
         "description": (
-            "Get full details for a single cover by its CoverId (format: yyyy-tnn-mmm, "
-            "e.g. '1966-I01-003'). Returns all cover fields plus the parent stamp issue record. "
+            "Get full details for a single cover by its CoverId. "
+            "Returns all cover fields plus the parent stamp issue record. "
             "Use this when the user asks about a specific cover by its catalogue number."
         ),
         "input_schema": {
@@ -120,7 +123,13 @@ TOOLS = [
             "properties": {
                 "cover_id": {
                     "type": "string",
-                    "description": "The cover catalogue ID in format yyyy-tnn-mmm, e.g. '1966-I01-003'.",
+                    "description": (
+                        "The cover catalogue ID in format yyyy-tnn-seq. "
+                        "seq is a 2-digit number (e.g. '1966-I01-03'), "
+                        "3-digit number (e.g. '2024-I15-012'), "
+                        "maker letter + 1 digit (e.g. '1966-I01-R3'), "
+                        "or maker letter + 2 digits (e.g. '1966-I01-P02')."
+                    ),
                 }
             },
             "required": ["cover_id"],

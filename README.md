@@ -103,6 +103,6 @@ https://davidaedwards.com/ausfdclist/api.php?action=statistics&stat_type=total&t
 - *"Show me Christmas FDCs from the 1980s"*
 - *"What covers exist for the 1966 Round the World Air Service issue?"*
 - *"Find all Bird series stamp issues"*
-- *"Tell me about cover 1966-I01-003"*
+- *"Tell me about cover 1966-I01-03"*
 - *"How many covers are in the database?"*
 - *"What makers produce FDCs?"*
