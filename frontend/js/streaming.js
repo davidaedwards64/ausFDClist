@@ -222,9 +222,13 @@ window.FDCStream = (() => {
   async function startChat(message, sessionId, callbacks) {
     const cb = callbacks || {};
 
+    const idToken = window.Auth ? window.Auth.getIdToken() : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ message, session_id: sessionId || null }),
     });
 

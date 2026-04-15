@@ -3,6 +3,8 @@
  */
 
 (function () {
+  window.Auth.ensureAuthenticated();
+
   const form     = document.getElementById('chat-form');
   const input    = document.getElementById('user-input');
   const sendBtn  = document.getElementById('send-btn');
@@ -12,6 +14,16 @@
   const closeBtn = document.getElementById('modal-close');
 
   let sessionId = null;
+
+  // ── Auth header ─────────────────────────────────────────────────────────
+  function updateHeader() {
+    const user = window.Auth.getCurrentUser();
+    const authDiv = document.getElementById('header-auth');
+    authDiv.innerHTML = `<span class="user-email">${user?.email || ''}</span>
+      <button class="logout-btn" id="logout-btn">Sign out</button>`;
+    document.getElementById('logout-btn').addEventListener('click', () => window.Auth.logout());
+  }
+  updateHeader();
 
   // ── Scroll to bottom ────────────────────────────────────────────────────
   function scrollBottom() {

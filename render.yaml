@@ -10,3 +10,11 @@ services:
         sync: false          # Set manually in the Render dashboard — never commit this value
       - key: PHP_API_BASE_URL
         value: https://davidaedwards.com/ausfdclist
+      - key: OKTA_CLIENT_ID
+        sync: false
+      - key: OKTA_ISSUER
+        sync: false
+      - key: OKTA_DOMAIN
+        sync: false
+      - key: OKTA_REDIRECT_URI
+        value: https://your-render-url.onrender.com/auth/callback

@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.agent import run_agent
 from backend.config import get_settings
-from backend.schemas import ChatRequest, HealthResponse
+from backend.schemas import ChatRequest, HealthResponse, AuthConfigResponse
 
 app = FastAPI(title="Australian FDC AI Agent")
 
@@ -21,6 +21,27 @@ app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 async def serve_ui():
     index = FRONTEND_DIR / "index.html"
     return HTMLResponse(content=index.read_text(encoding="utf-8"))
+
+
+@app.get("/auth/signin", response_class=HTMLResponse)
+async def serve_signin():
+    return HTMLResponse((FRONTEND_DIR / "signin.html").read_text(encoding="utf-8"))
+
+
+@app.get("/auth/callback", response_class=HTMLResponse)
+async def serve_callback():
+    return HTMLResponse((FRONTEND_DIR / "callback.html").read_text(encoding="utf-8"))
+
+
+@app.get("/api/config", response_model=AuthConfigResponse)
+async def get_auth_config():
+    s = get_settings()
+    return AuthConfigResponse(
+        okta_client_id=s.okta_client_id,
+        okta_issuer=s.okta_issuer,
+        okta_domain=s.okta_domain,
+        okta_redirect_uri=s.okta_redirect_uri,
+    )
 
 
 @app.get("/api/health", response_model=HealthResponse)
