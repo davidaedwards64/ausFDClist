@@ -105,7 +105,7 @@
       FDCStream.renderCovers(result.covers, bubble);
     } else if (name === 'search_issues' && result.issues && result.issues.length) {
       FDCStream.renderIssues(result.issues, bubble);
-    } else if (name === 'cover_details' && result.cover) {
+    } else if (name === 'get_cover_details' && result.cover) {
       FDCStream.renderCovers([result.cover], bubble);
     } else if (name === 'get_issue_with_covers') {
       if (result.issue) FDCStream.renderIssues([result.issue], bubble);
