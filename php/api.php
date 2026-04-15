@@ -107,8 +107,11 @@ function action_search_covers(): void {
     }
 
     if ($text !== null && $text !== '') {
-        $where[]  = '(c.Title LIKE :text OR c.AKA LIKE :text OR i.Title LIKE :text OR i.Series LIKE :text)';
-        $params[':text'] = '%' . $text . '%';
+        $where[]  = '(c.Title LIKE :text1 OR c.AKA LIKE :text2 OR i.Title LIKE :text3 OR i.Series LIKE :text4)';
+        $params[':text1'] = '%' . $text . '%';
+        $params[':text2'] = '%' . $text . '%';
+        $params[':text3'] = '%' . $text . '%';
+        $params[':text4'] = '%' . $text . '%';
     }
 
     if ($type !== null && $type !== '') {
@@ -183,8 +186,10 @@ function action_search_issues(): void {
     }
 
     if ($text !== null && $text !== '') {
-        $where[]  = '(Title LIKE :text OR AKA LIKE :text OR Series LIKE :text)';
-        $params[':text'] = '%' . $text . '%';
+        $where[]  = '(Title LIKE :text1 OR AKA LIKE :text2 OR Series LIKE :text3)';
+        $params[':text1'] = '%' . $text . '%';
+        $params[':text2'] = '%' . $text . '%';
+        $params[':text3'] = '%' . $text . '%';
     }
 
     if ($series !== null && $series !== '') {
