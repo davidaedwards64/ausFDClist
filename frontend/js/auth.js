@@ -5,7 +5,6 @@
 window.Auth = (() => {
   const TOKEN_KEY    = 'okta_id_token';
   const USER_KEY     = 'okta_user';
-  const DOMAIN_KEY   = 'okta_domain';
   const VERIFIER_KEY = 'pkce_code_verifier';
   const STATE_KEY    = 'pkce_state';
   const CONFIG_KEY   = 'okta_config';
@@ -69,17 +68,12 @@ window.Auth = (() => {
   }
 
   function logout() {
-    const token  = getIdToken();
-    const domain = sessionStorage.getItem(DOMAIN_KEY);
+    const token = getIdToken();
     sessionStorage.clear();
-    if (token && domain) {
-      const url = `${domain}/oauth2/v1/logout` +
-        `?id_token_hint=${encodeURIComponent(token)}` +
-        `&post_logout_redirect_uri=${encodeURIComponent(window.location.origin + '/auth/signin')}`;
-      window.location.replace(url);
-    } else {
-      window.location.replace('/auth/signin');
-    }
+    const url = token
+      ? `/auth/signout?id_token_hint=${encodeURIComponent(token)}`
+      : '/auth/signin';
+    window.location.replace(url);
   }
 
   async function initiateLogin() {
@@ -88,7 +82,6 @@ window.Auth = (() => {
     const config = await configRes.json();
 
     sessionStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    sessionStorage.setItem(DOMAIN_KEY, config.okta_domain);
 
     const verifier = generateRandomString(64);
     const state    = generateRandomString(32);
