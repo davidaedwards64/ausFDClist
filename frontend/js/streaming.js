@@ -22,7 +22,8 @@ window.FDCStream = (() => {
   }
   function stampImgUrl(filename) {
     if (!filename) return null;
-    return `${PHP_BASE}/images/${filename}`;
+    const year = filename.substring(0, 4);
+    return `${PHP_BASE}/images/${year}/${filename}`;
   }
 
   // ── Source code → badge CSS class ───────────────────────────────────────
