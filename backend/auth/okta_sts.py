@@ -71,7 +71,7 @@ async def exchange_id_token_for_vaulted_secret(
             return result
 
     try:
-        token_url = f"{settings.okta_issuer}/v1/token"
+        token_url = f"{settings.okta_domain}/oauth2/v1/token"
         client_assertion = create_client_assertion_jwt(
             settings.okta_agent_client_id,
             settings.okta_agent_private_jwk,
