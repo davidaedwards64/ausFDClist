@@ -101,9 +101,12 @@ window.AuthSteps = (() => {
       ? `expires in ${exchange.expires_in}s`
       : '';
 
+    const maskedPw = secret.password
+      ? _esc(secret.password.slice(0, 3)) + '••••••••'
+      : '';
     const credRows = secret.username
       ? `<div class="auth-cred-row"><span class="auth-cred-key">username</span><code>${_esc(secret.username)}</code></div>` +
-        `<div class="auth-cred-row"><span class="auth-cred-key">password</span><code>${_esc(secret.password || '')}</code></div>`
+        `<div class="auth-cred-row"><span class="auth-cred-key">password</span><code>${maskedPw}</code></div>`
       : '';
 
     _setStepStatus(
