@@ -2,8 +2,8 @@
  * app.js — form submission, message rendering, image modal
  */
 
-(function () {
-  window.Auth.ensureAuthenticated();
+(async function () {
+  await window.Auth.ensureAuthenticated();
 
   const form     = document.getElementById('chat-form');
   const input    = document.getElementById('user-input');

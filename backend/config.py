@@ -8,12 +8,14 @@ class Settings(BaseSettings):
     model: str = "claude-haiku-4-5-20251001"
     max_tokens: int = 4096
     okta_client_id: str = ""
+    okta_client_secret: str = ""       # Required: OIDC Web App (confidential client) secret
     okta_issuer: str = ""
     okta_domain: str = ""
     okta_redirect_uri: str = "http://localhost:8000/auth/callback"
     okta_agent_client_id: str = ""
     okta_agent_private_jwk: str = ""
     okta_db_resource_indicator: str = ""
+    session_secret: str = ""           # Set to a stable value in production to survive restarts
 
     class Config:
         env_file = ".env"

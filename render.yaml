@@ -12,6 +12,10 @@ services:
         value: https://davidaedwards.com/ausfdclist
       - key: OKTA_CLIENT_ID
         sync: false
+      - key: OKTA_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
       - key: OKTA_ISSUER
         sync: false
       - key: OKTA_DOMAIN

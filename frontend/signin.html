@@ -126,7 +126,6 @@
     </div>
   </div>
 
-  <script src="/static/js/auth.js"></script>
   <script>
     (function () {
       // Show error from query param (e.g. redirect from failed callback)
@@ -138,18 +137,10 @@
         msg.hidden = false;
       }
 
-      document.getElementById('signin-btn').addEventListener('click', async function () {
+      document.getElementById('signin-btn').addEventListener('click', function () {
         this.disabled = true;
         this.textContent = 'Redirecting…';
-        try {
-          await window.Auth.initiateLogin();
-        } catch (err) {
-          const msg = document.getElementById('error-msg');
-          msg.textContent = `Sign-in error: ${err.message}`;
-          msg.hidden = false;
-          this.disabled = false;
-          this.textContent = 'Sign in with Okta';
-        }
+        window.location.replace('/auth/start');
       });
     })();
   </script>
