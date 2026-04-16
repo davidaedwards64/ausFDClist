@@ -319,6 +319,26 @@ a:hover { text-decoration: underline; }
 .issue-card .card-series { font-size: .78rem; color: var(--muted); margin: 3px 0 6px; }
 .issue-card .card-stamps { font-size: .78rem; color: var(--muted); margin: 4px 0; }
 
+/* ── Markdown tables ───────────────────────────────────────────────────── */
+.md-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6px 0;
+  font-size: .85rem;
+}
+.md-table th,
+.md-table td {
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  text-align: left;
+}
+.md-table thead tr {
+  background: var(--surface-alt, #f0f3f7);
+}
+.md-table tbody tr:nth-child(even) {
+  background: rgba(0,0,0,.03);
+}
+
 /* ── Input form ────────────────────────────────────────────────────────── */
 .chat-form {
   padding: 12px 0 44px;

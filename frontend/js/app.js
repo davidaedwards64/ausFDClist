@@ -75,16 +75,55 @@
     if (el) el.closest('.message').remove();
   }
 
-  // ── Simple markdown-lite renderer ───────────────────────────────────────
-  // Handles **bold**, `code`, and newlines → <br>
+  // ── Markdown renderer — handles tables, **bold**, `code`, newlines ──────
   function renderMarkdown(text) {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function inline(s) {
+      return esc(s)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>');
+    }
+    function parseRow(r) {
+      return r.trim().split('|').slice(1, -1).map(c => c.trim());
+    }
+
+    const lines = text.split('\n');
+    const parts = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const trimmed = lines[i].trim();
+      // Detect markdown table: pipe-row followed by separator row
+      if (
+        /^\|.+\|$/.test(trimmed) &&
+        i + 1 < lines.length &&
+        /^\|[\s\-:|]+\|$/.test(lines[i + 1].trim())
+      ) {
+        const rows = [];
+        while (i < lines.length && /^\|.+\|$/.test(lines[i].trim())) {
+          rows.push(lines[i]);
+          i++;
+        }
+        const headers = parseRow(rows[0]);
+        let tbl = '<table class="md-table"><thead><tr>';
+        headers.forEach(h => { tbl += `<th>${inline(h)}</th>`; });
+        tbl += '</tr></thead><tbody>';
+        rows.slice(2).forEach(row => {
+          const cells = parseRow(row);
+          tbl += '<tr>';
+          cells.forEach(c => { tbl += `<td>${inline(c)}</td>`; });
+          tbl += '</tr>';
+        });
+        tbl += '</tbody></table>';
+        parts.push(tbl);
+      } else {
+        parts.push(inline(lines[i]));
+        i++;
+      }
+    }
+    return parts.join('<br>');
   }
 
   // ── Build a tool-notice element ─────────────────────────────────────────
@@ -155,7 +194,7 @@
           // Render accumulated text as one paragraph
           let textEl = assistantBubble.querySelector('.assistant-text');
           if (!textEl) {
-            textEl = document.createElement('p');
+            textEl = document.createElement('div');
             textEl.className = 'assistant-text';
             assistantBubble.insertBefore(textEl, assistantBubble.firstChild);
           }
