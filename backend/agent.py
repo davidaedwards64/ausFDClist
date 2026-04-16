@@ -6,6 +6,7 @@ from typing import AsyncGenerator, Dict, List, Optional
 
 import anthropic
 
+from backend.auth.okta_sts import exchange_id_token_for_vaulted_secret
 from backend.config import get_settings
 from backend.tools import TOOLS
 from backend.handlers import TOOL_HANDLERS
@@ -129,10 +130,15 @@ def _get_or_create_session(session_id: Optional[str]) -> tuple[str, List[Dict]]:
     return session_id, _sessions[session_id]
 
 
-async def run_agent(message: str, session_id: Optional[str]) -> AsyncGenerator[str, None]:
+async def run_agent(
+    message: str,
+    session_id: Optional[str],
+    user_id_token: Optional[str] = None,
+) -> AsyncGenerator[str, None]:
     """
     Run the agentic loop and yield newline-delimited JSON events:
       {"type": "session", "session_id": "..."}
+      {"type": "token_exchange", "success": ..., "status": "...", ...}
       {"type": "text", "text": "..."}
       {"type": "tool_call", "name": "...", "input": {...}}
       {"type": "tool_result", "name": "...", "result": {...}}
@@ -144,6 +150,13 @@ async def run_agent(message: str, session_id: Optional[str]) -> AsyncGenerator[s
 
     session_id, history = _get_or_create_session(session_id)
     yield json.dumps({"type": "session", "session_id": session_id}) + "\n"
+
+    # Perform token exchange and emit the result as an SSE event for demo display
+    exchange_result = await exchange_id_token_for_vaulted_secret(
+        user_id_token=user_id_token,
+        cache_key=session_id,
+    )
+    yield json.dumps({"type": "token_exchange", **exchange_result}) + "\n"
 
     # Append the new user message
     history.append({"role": "user", "content": message})
@@ -197,7 +210,11 @@ async def run_agent(message: str, session_id: Optional[str]) -> AsyncGenerator[s
                     result = {"error": f"Unknown tool: {block.name}"}
                 else:
                     try:
-                        result = await handler(block.input)
+                        result = await handler(
+                            block.input,
+                            user_id_token=user_id_token,
+                            session_id=session_id,
+                        )
                     except Exception as exc:
                         result = {"error": str(exc)}
 

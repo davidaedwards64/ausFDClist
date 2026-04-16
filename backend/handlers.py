@@ -1,9 +1,14 @@
 """Tool execution handlers — async httpx calls to the PHP API."""
 
-import httpx
-from typing import Any, Dict
+import logging
+from typing import Any, Dict, Optional
 
+import httpx
+
+from backend.auth.okta_sts import exchange_id_token_for_vaulted_secret
 from backend.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Single-letter source codes (Covers.Source column) → full names
 SOURCE_NAMES: Dict[str, str] = {
@@ -95,20 +100,50 @@ ISSUE_TYPES: Dict[str, str] = {
 }
 
 
-async def _php_get(action: str, params: Dict[str, Any]) -> Any:
-    """Make a GET request to the PHP API and return parsed JSON."""
+async def _get_db_credentials(
+    user_id_token: Optional[str],
+    session_id: Optional[str],
+) -> Optional[Dict[str, str]]:
+    """Retrieve DB credentials via Okta STS token exchange. Returns None on failure."""
+    result = await exchange_id_token_for_vaulted_secret(
+        user_id_token=user_id_token,
+        cache_key=session_id,
+    )
+    if not result.get("success"):
+        logger.warning("Failed to obtain DB credentials: %s", result.get("error"))
+        return None
+    secret = result.get("vaulted_secret", {})
+    return {"db_user": secret.get("username", ""), "db_pass": secret.get("password", "")}
+
+
+async def _php_post(
+    action: str,
+    params: Dict[str, Any],
+    db_user: Optional[str] = None,
+    db_pass: Optional[str] = None,
+) -> Any:
+    """Make a POST request to the PHP API and return parsed JSON."""
     settings = get_settings()
     url = f"{settings.php_api_base_url}/api.php"
-    params = {k: v for k, v in params.items() if v is not None}
-    params["action"] = action
+    body = {k: v for k, v in params.items() if v is not None}
+    body["action"] = action
+    if db_user is not None:
+        body["db_user"] = db_user
+    if db_pass is not None:
+        body["db_pass"] = db_pass
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
+        response = await client.post(url, json=body)
         response.raise_for_status()
         return response.json()
 
 
-async def handle_search_covers(args: Dict[str, Any]) -> Any:
+async def handle_search_covers(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    creds = await _get_db_credentials(user_id_token, session_id)
     params = {
         "year": args.get("year"),
         "text": args.get("text"),
@@ -116,10 +151,19 @@ async def handle_search_covers(args: Dict[str, Any]) -> Any:
         "source": args.get("source"),
         "limit": args.get("limit", 20),
     }
-    return await _php_get("search_covers", params)
+    return await _php_post(
+        "search_covers", params,
+        db_user=creds["db_user"] if creds else None,
+        db_pass=creds["db_pass"] if creds else None,
+    )
 
 
-async def handle_search_issues(args: Dict[str, Any]) -> Any:
+async def handle_search_issues(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    creds = await _get_db_credentials(user_id_token, session_id)
     params = {
         "year": args.get("year"),
         "text": args.get("text"),
@@ -127,28 +171,63 @@ async def handle_search_issues(args: Dict[str, Any]) -> Any:
         "type": args.get("type"),
         "limit": args.get("limit", 20),
     }
-    return await _php_get("search_issues", params)
+    return await _php_post(
+        "search_issues", params,
+        db_user=creds["db_user"] if creds else None,
+        db_pass=creds["db_pass"] if creds else None,
+    )
 
 
-async def handle_get_cover_details(args: Dict[str, Any]) -> Any:
+async def handle_get_cover_details(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    creds = await _get_db_credentials(user_id_token, session_id)
     params = {"id": args["cover_id"]}
-    return await _php_get("cover_details", params)
+    return await _php_post(
+        "cover_details", params,
+        db_user=creds["db_user"] if creds else None,
+        db_pass=creds["db_pass"] if creds else None,
+    )
 
 
-async def handle_get_issue_with_covers(args: Dict[str, Any]) -> Any:
+async def handle_get_issue_with_covers(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    creds = await _get_db_credentials(user_id_token, session_id)
     params = {"issue_id": args["issue_id"]}
-    return await _php_get("issue_with_covers", params)
+    return await _php_post(
+        "issue_with_covers", params,
+        db_user=creds["db_user"] if creds else None,
+        db_pass=creds["db_pass"] if creds else None,
+    )
 
 
-async def handle_get_statistics(args: Dict[str, Any]) -> Any:
+async def handle_get_statistics(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    creds = await _get_db_credentials(user_id_token, session_id)
     params = {
         "stat_type": args["stat_type"],
         "table": args.get("table", "covers"),
     }
-    return await _php_get("statistics", params)
+    return await _php_post(
+        "statistics", params,
+        db_user=creds["db_user"] if creds else None,
+        db_pass=creds["db_pass"] if creds else None,
+    )
 
 
-async def handle_list_available_sources(_args: Dict[str, Any]) -> Any:
+async def handle_list_available_sources(
+    _args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
     return {
         "sources": [
             {"code": code, "name": SOURCE_NAMES[code], "color": SOURCE_COLORS[code]}

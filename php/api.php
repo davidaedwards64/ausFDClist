@@ -3,44 +3,67 @@
  * Australian FDC Database — JSON API
  * Deploy to: davidaedwards.com/ausfdclist/api.php
  *
- * Actions (via ?action=):
+ * Actions (via POST JSON body or ?action= GET param):
  *   search_covers     — search Covers LEFT JOIN Issues
  *   search_issues     — search Issues table
  *   cover_details     — single cover + parent issue
  *   issue_with_covers — issue + all child covers
  *   statistics        — aggregate counts
+ *
+ * Credentials (db_user, db_pass) must be supplied in the POST JSON body.
+ * They are NOT stored in this file; they are obtained at runtime via
+ * Okta STS vaulted-secret token exchange in the FastAPI backend.
  */
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
+// ── Parse request body ──────────────────────────────────────────────────────
+$data = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $raw = file_get_contents('php://input');
+    if ($raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $data = $decoded;
+        }
+    }
+}
+
 // ── Database connection ────────────────────────────────────────────────────
-// Edit these credentials to match your hosting environment.
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'ausfdc');       // ← your database name
-define('DB_USER', 'your_db_user'); // ← your database username
-define('DB_PASS', 'your_db_pass'); // ← your database password
+define('DB_HOST',    'localhost');
+define('DB_NAME',    'ausfdc');
 define('DB_CHARSET', 'utf8mb4');
 
-function get_db(): PDO {
-    static $pdo = null;
-    if ($pdo === null) {
-        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
-        $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ];
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+// Credentials come from the POST body (supplied by FastAPI after STS exchange).
+$db_user = $data['db_user'] ?? null;
+$db_pass = $data['db_pass'] ?? null;
+
+// Validate credentials are present for DB-accessing actions
+$action = $data['action'] ?? $_GET['action'] ?? '';
+$no_db_actions = [];   // all actions require DB access
+
+if (!in_array($action, $no_db_actions, true)) {
+    if ($db_user === null || $db_user === '' || $db_pass === null) {
+        json_response(['error' => "db_user and db_pass are required. Credentials must be supplied via the POST JSON body."], 400);
     }
-    return $pdo;
+}
+
+function get_db(string $db_user, string $db_pass): PDO {
+    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+    return new PDO($dsn, $db_user, $db_pass, $options);
 }
 
 // ── Helper ─────────────────────────────────────────────────────────────────
@@ -61,24 +84,24 @@ function intval_clamp(mixed $val, int $min, int $max, int $default): int {
 }
 
 // ── Routing ────────────────────────────────────────────────────────────────
-$action = $_GET['action'] ?? '';
-
 try {
+    $pdo = get_db($db_user, $db_pass);
+
     switch ($action) {
         case 'search_covers':
-            action_search_covers();
+            action_search_covers($pdo, $data);
             break;
         case 'search_issues':
-            action_search_issues();
+            action_search_issues($pdo, $data);
             break;
         case 'cover_details':
-            action_cover_details();
+            action_cover_details($pdo, $data);
             break;
         case 'issue_with_covers':
-            action_issue_with_covers();
+            action_issue_with_covers($pdo, $data);
             break;
         case 'statistics':
-            action_statistics();
+            action_statistics($pdo, $data);
             break;
         default:
             error_response("Unknown action: '$action'. Valid actions: search_covers, search_issues, cover_details, issue_with_covers, statistics.");
@@ -89,19 +112,17 @@ try {
 
 // ── Actions ────────────────────────────────────────────────────────────────
 
-function action_search_covers(): void {
-    $pdo    = get_db();
-    $year   = $_GET['year']   ?? null;
-    $text   = $_GET['text']   ?? null;
-    $type   = $_GET['type']   ?? null;
-    $source = $_GET['source'] ?? null;
-    $limit  = intval_clamp($_GET['limit'] ?? null, 1, 100, 20);
+function action_search_covers(PDO $pdo, array $data): void {
+    $year   = $data['year']   ?? $_GET['year']   ?? null;
+    $text   = $data['text']   ?? $_GET['text']   ?? null;
+    $type   = $data['type']   ?? $_GET['type']   ?? null;
+    $source = $data['source'] ?? $_GET['source'] ?? null;
+    $limit  = intval_clamp($data['limit'] ?? $_GET['limit'] ?? null, 1, 100, 20);
 
     $where  = [];
     $params = [];
 
     if ($year !== null && $year !== '') {
-        // Date column is yyyy-mm-dd, so LIKE prefix works for both full year and decade
         $where[]  = 'c.Date LIKE :year';
         $params[':year'] = $year . '%';
     }
@@ -168,19 +189,17 @@ function action_search_covers(): void {
 }
 
 
-function action_search_issues(): void {
-    $pdo    = get_db();
-    $year   = $_GET['year']   ?? null;
-    $text   = $_GET['text']   ?? null;
-    $series = $_GET['series'] ?? null;
-    $type   = $_GET['type']   ?? null;
-    $limit  = intval_clamp($_GET['limit'] ?? null, 1, 100, 20);
+function action_search_issues(PDO $pdo, array $data): void {
+    $year   = $data['year']   ?? $_GET['year']   ?? null;
+    $text   = $data['text']   ?? $_GET['text']   ?? null;
+    $series = $data['series'] ?? $_GET['series'] ?? null;
+    $type   = $data['type']   ?? $_GET['type']   ?? null;
+    $limit  = intval_clamp($data['limit'] ?? $_GET['limit'] ?? null, 1, 100, 20);
 
     $where  = [];
     $params = [];
 
     if ($year !== null && $year !== '') {
-        // Date column is yyyy-mm-dd, so LIKE prefix works for both full year and decade
         $where[]  = 'Date LIKE :year';
         $params[':year'] = $year . '%';
     }
@@ -240,9 +259,8 @@ function action_search_issues(): void {
 }
 
 
-function action_cover_details(): void {
-    $pdo = get_db();
-    $id  = $_GET['id'] ?? null;
+function action_cover_details(PDO $pdo, array $data): void {
+    $id = $data['id'] ?? $_GET['id'] ?? null;
 
     if ($id === null || $id === '') {
         error_response("Parameter 'id' (CoverId) is required.");
@@ -295,15 +313,13 @@ function action_cover_details(): void {
 }
 
 
-function action_issue_with_covers(): void {
-    $pdo      = get_db();
-    $issue_id = $_GET['issue_id'] ?? null;
+function action_issue_with_covers(PDO $pdo, array $data): void {
+    $issue_id = $data['issue_id'] ?? $_GET['issue_id'] ?? null;
 
     if ($issue_id === null || $issue_id === '') {
         error_response("Parameter 'issue_id' is required.");
     }
 
-    // Fetch the issue
     $stmt = $pdo->prepare("
         SELECT Id, IssueId, Date, Title, AKA, Series, Type, Description,
                Stamps, SBNbr, Notes, StampPic
@@ -318,7 +334,6 @@ function action_issue_with_covers(): void {
         error_response("Issue not found: $issue_id", 404);
     }
 
-    // Fetch all covers for this issue
     $stmt2 = $pdo->prepare("
         SELECT Id, CoverId, Date, Title, AKA, Type, Description, Stamps,
                Pic1, Pic2, Pic3, Pic4, Size, Notes, Source
@@ -338,16 +353,14 @@ function action_issue_with_covers(): void {
 }
 
 
-function action_statistics(): void {
-    $pdo       = get_db();
-    $stat_type = $_GET['stat_type'] ?? null;
-    $table     = $_GET['table']     ?? 'covers';
+function action_statistics(PDO $pdo, array $data): void {
+    $stat_type = $data['stat_type'] ?? $_GET['stat_type'] ?? null;
+    $table     = $data['table']     ?? $_GET['table']     ?? 'covers';
 
     if ($stat_type === null || $stat_type === '') {
         error_response("Parameter 'stat_type' is required. Valid values: total, by_year, by_source, by_type.");
     }
 
-    // Whitelist table name to prevent SQL injection
     if (!in_array($table, ['covers', 'issues'], true)) {
         error_response("Invalid table. Must be 'covers' or 'issues'.");
     }

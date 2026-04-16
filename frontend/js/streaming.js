@@ -267,6 +267,9 @@ window.FDCStream = (() => {
           case 'session':
             cb.onSession && cb.onSession(event.session_id);
             break;
+          case 'token_exchange':
+            cb.onTokenExchange && cb.onTokenExchange(event);
+            break;
           case 'text':
             cb.onText && cb.onText(event.text);
             break;

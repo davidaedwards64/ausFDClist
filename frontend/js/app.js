@@ -25,6 +25,12 @@
   }
   updateHeader();
 
+  // ── Auth steps panel ─────────────────────────────────────────────────────
+  if (window.AuthSteps) {
+    AuthSteps.showPanel();
+    AuthSteps.updateStep1(window.Auth.getCurrentUser());
+  }
+
   // ── Scroll to bottom ────────────────────────────────────────────────────
   function scrollBottom() {
     messages.scrollTop = messages.scrollHeight;
@@ -132,6 +138,12 @@
 
         onSession(sid) {
           sessionId = sid;
+        },
+
+        onTokenExchange(exchange) {
+          if (window.AuthSteps) {
+            AuthSteps.updateStep2(exchange);
+          }
         },
 
         onText(text) {

@@ -55,11 +55,15 @@ async def health():
 
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
+async def chat(request: Request, body: ChatRequest):
     """Stream agent responses as newline-delimited JSON over SSE."""
+    auth_header = request.headers.get("Authorization", "")
+    user_id_token = None
+    if auth_header.startswith("Bearer "):
+        user_id_token = auth_header[len("Bearer "):]
 
     async def event_stream():
-        async for chunk in run_agent(request.message, request.session_id):
+        async for chunk in run_agent(body.message, body.session_id, user_id_token=user_id_token):
             yield f"data: {chunk}\n"
 
     return StreamingResponse(
