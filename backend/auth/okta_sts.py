@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 _cache: Dict[str, Dict[str, Any]] = {}
 
 
-def create_client_assertion_jwt(client_id: str, private_jwk_str: str, okta_domain: str) -> str:
+def create_client_assertion_jwt(client_id: str, private_jwk_str: str, token_url: str) -> str:
     """Sign a short-lived JWT (RS256) for use as client_assertion in the token exchange."""
     private_jwk = json.loads(private_jwk_str)
     now = int(time.time())
     claims = {
         "iss": client_id,
         "sub": client_id,
-        "aud": f"{okta_domain}/oauth2/v1/token",
+        "aud": token_url,
         "iat": now,
         "exp": now + 60,
         "jti": str(uuid.uuid4()),
@@ -71,13 +71,12 @@ async def exchange_id_token_for_vaulted_secret(
             return result
 
     try:
+        token_url = f"{settings.okta_issuer}/v1/token"
         client_assertion = create_client_assertion_jwt(
             settings.okta_agent_client_id,
             settings.okta_agent_private_jwk,
-            settings.okta_domain,
+            token_url,
         )
-
-        token_url = f"{settings.okta_domain}/oauth2/v1/token"
         payload: Dict[str, str] = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token": user_id_token,
