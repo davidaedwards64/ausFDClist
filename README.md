@@ -146,6 +146,12 @@ KEY FLOWS
 
 - Python 3.11+
 - An [Anthropic API key](https://console.anthropic.com)
+- An Okta org with an **OIDC Web App** configured for Authorization Code flow (confidential client):
+  - Sign-in redirect URI: `http://localhost:8000/auth/callback`
+  - Provides: `OKTA_CLIENT_ID`, `OKTA_CLIENT_SECRET`, `OKTA_ISSUER`, `OKTA_DOMAIN`
+- *(Optional)* Okta AI Agent app + OPA Managed Connection for DB credential vaulting:
+  - Provides: `OKTA_AGENT_CLIENT_ID`, `OKTA_AGENT_PRIVATE_JWK`, `OKTA_DB_RESOURCE_INDICATOR`
+  - If not configured the app runs fine — the auth steps panel will show "NOT CONFIGURED" for STS, and DB calls will fall back to unauthenticated (will fail unless api.php has fallback creds)
 
 ### 2. Clone and install
 
@@ -161,8 +167,23 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env — add your ANTHROPIC_API_KEY
 ```
+
+Edit `.env` and fill in all required values:
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
+| `PHP_API_BASE_URL` | Yes | Base URL of the PHP API (no trailing slash) |
+| `OKTA_CLIENT_ID` | Yes | OIDC Web App client ID |
+| `OKTA_CLIENT_SECRET` | Yes | OIDC Web App client secret |
+| `OKTA_ISSUER` | Yes | Okta issuer URL (e.g. `https://your-org.okta.com/oauth2/default`) |
+| `OKTA_DOMAIN` | Yes | Okta org base URL (e.g. `https://your-org.okta.com`) |
+| `OKTA_REDIRECT_URI` | Yes | `http://localhost:8000/auth/callback` for local dev |
+| `SESSION_SECRET` | Yes | Random hex key for session cookie signing — generate with: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `OKTA_AGENT_CLIENT_ID` | Optional | AI Agent OAuth app client ID (STS token exchange) |
+| `OKTA_AGENT_PRIVATE_JWK` | Optional | Agent private JWK as a JSON string (RS256) |
+| `OKTA_DB_RESOURCE_INDICATOR` | Optional | OPA Managed Connection resource URI |
 
 ### 4. Run
 
@@ -170,7 +191,7 @@ cp .env.example .env
 uvicorn backend.main:app --reload
 ```
 
-Open [http://localhost:8000](http://localhost:8000).
+Open [http://localhost:8000](http://localhost:8000). You will be redirected to the Okta sign-in page on first visit.
 
 ---
 
