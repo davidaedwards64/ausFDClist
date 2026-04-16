@@ -1,0 +1,61 @@
+╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                              AUSTRALIAN FDC AI ASSISTANT — ARCHITECTURE                                                          ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────┐         ┌───────────────────────────────────────────────────────────────────┐
+│  BROWSER                  │         │  FASTAPI BACKEND  (Render, Python / Uvicorn)                      │
+│                           │  HTTPS  │                                                                   │        ┌──────────────────────────────────────────────┐
+│  signin.html              │────────►│  main.py                                                          │  ②    │  OKTA  (OIDC Auth Server)                    │
+│  ┌───────────────────┐    │(session │  ┌─────────────────────────────────────────────────────────────┐  │───────►│  /v1/authorize  ·  /v1/token                 │
+│  │ Sign in button    │    │ cookie) │  │ /auth/start    → redirect to Okta /v1/authorize         →② │  │◄───────│  Authorization Code, confidential client     │
+│  │ → /auth/start     │    │         │  │ /auth/callback ← receive code, exchange tokens          ←② │  │        └──────────────────────────────────────────────┘
+│  └───────────────────┘    │         │  │ /auth/logout   → clear session                             │  │
+│                           │         │  │ /api/me        → return user from session          (→ ④) │  │
+│  index.html               │         │  │ /api/chat      → run_agent(msg, session, id_token) (→ ⑤) │  │
+│  ┌───────────────────┐    │         │  └─────────────────────────────────────────────────────────────┘  │        ┌──────────────────────────────────────────────┐
+│  │ auth.js    ④      │    │◄────────│                                                                   │  ③    │  OKTA STS                                    │
+│  │ app.js     ⑤      │    │  SSE ⑤  │  agent.py  (agentic SSE loop)                                     │───────►│  /oauth2/v1/token                            │
+│  │ streaming.js      │    │(ndjson) │  ┌─────────────────────────────────────────────────────────────┐  │◄───────│  grant: token-exchange (RFC 8693)            │
+│  │ auth-steps.js     │    │         │  │ 1. yield session event                                      │  │        │  subject_token: user id_token                │
+│  └───────────────────┘    │         │  │ 2. token_exchange  →③  (cached per session)                 │  │        │  client_assertion: RS256 JWT (agent JWK)     │
+└───────────────────────────┘         │  │ 3. call Claude API →⑥  (tool-use loop)                     │  │        └─────────────────────┬────────────────────────┘
+                                      │  │ 4. tool dispatch   →⑦                                      │  │                              │  ③ retrieves credentials
+                                      │  └─────────────────────────────────────────────────────────────┘  │                              ▼
+                                      │                                                                   │        ┌──────────────────────────────────────────────┐
+                                      │  auth/okta_sts.py                                                 │        │  OPA VAULT  (Okta Privileged Access)         │
+                                      │  ┌─────────────────────────────────────────────────────────────┐  │        │  Managed Connection: ausFDClist-DB-Creds     │
+                                      │  │ Signs RS256 client_assertion JWT with agent private JWK     │  │        │  vaulted_secret { username, password }       │
+                                      │  │ POSTs token exchange to Okta STS, returns vaulted_secret    │  │        └──────────────────────────────────────────────┘
+                                      │  │ In-memory cache keyed by session_id (TTL = expires_in s)    │  │
+                                      │  └─────────────────────────────────────────────────────────────┘  │        ┌──────────────────────────────────────────────┐
+                                      │                                                                   │  ⑥    │  ANTHROPIC API                               │
+                                      │  handlers.py  (tool handlers)                                     │───────►│  claude-sonnet-4-5                           │
+                                      │  ┌─────────────────────────────────────────────────────────────┐  │◄───────│  tool use · streaming                        │
+                                      │  │ search_covers · search_issues · get_cover_details           │  │        └──────────────────────────────────────────────┘
+                                      │  │ get_issue_with_covers · get_statistics                      │  │
+                                      │  │ list_available_sources                                      │  │
+                                      │  │ Each: _get_db_creds() → _php_post(action, creds)            │  │
+                                      │  └─────────────────────────────────────────────────────────────┘  │
+                                      └──────────────────────────────────────────────────────────────────⑦─┘
+                                                                                                          │
+                                                                                             ┌────────────▼────────────────────┐   ┌─────────────────┐
+                                                                                             │  PHP API                        │   │  MySQL DATABASE │
+                                                                                             │  (davidaedwards.com/ausfdclist)  │   │                 │
+                                                                                             │  api.php                        │──►│  Covers         │
+                                                                                             │  POST body: action + params      │◄──│  Issues         │
+                                                                                             │            + db_user + db_pass   │   │  Stamps         │
+                                                                                             │  new PDO connection per request  │   └─────────────────┘
+                                                                                             └─────────────────────────────────┘
+
+
+KEY FLOWS
+─────────
+① Sign-in:     Browser → /auth/start → Okta /v1/authorize → /auth/callback → Okta /v1/token (code exchange) → session cookie → /
+
+⑤ Per-message: Browser POST /api/chat → FastAPI (verifies session id_token) → agent.py:
+                 · Exchanges id_token for vaulted DB creds via Okta STS →③→ OPA Vault  (result cached per session)
+                 · Runs Claude API agentic tool-use loop →⑥
+                 · Each tool call: fetches creds from cache, POSTs to api.php with action + db creds →⑦→ MySQL
+                 · All events streamed to browser as SSE  (session · token_exchange · text · tool_call · tool_result · end)
+
+   Cache:       Vaulted secret cached server-side in memory (TTL ≈ 300 s).  Cache hit skips Okta STS call.
