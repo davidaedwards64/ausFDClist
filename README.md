@@ -178,18 +178,20 @@ Open [http://localhost:8000](http://localhost:8000).
 
 Copy `php/api.php` to `davidaedwards.com/ausfdclist/api.php`.
 
-Edit the database credentials at the top of the file:
+Edit the static connection settings at the top of the file (host and database name only — credentials are no longer hardcoded):
 
 ```php
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'ausfdc');
-define('DB_USER', 'your_db_user');
-define('DB_PASS', 'your_db_pass');
 ```
 
-Test it:
-```
-https://davidaedwards.com/ausfdclist/api.php?action=statistics&stat_type=total&table=covers
+`db_user` and `db_pass` are supplied at runtime by the FastAPI backend on every request via the JSON POST body. They are retrieved from **OPA Vault via Okta STS token exchange** and never stored in source code or on disk.
+
+Test it (expects a POST with credentials — a direct GET will return a 400):
+```bash
+curl -s -X POST https://davidaedwards.com/ausfdclist/api.php \
+  -H "Content-Type: application/json" \
+  -d '{"action":"statistics","stat_type":"total","table":"covers","db_user":"…","db_pass":"…"}'
 ```
 
 ---
