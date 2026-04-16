@@ -18,3 +18,9 @@ services:
         sync: false
       - key: OKTA_REDIRECT_URI
         value: https://your-render-url.onrender.com/auth/callback
+      - key: OKTA_AGENT_CLIENT_ID
+        sync: false
+      - key: OKTA_AGENT_PRIVATE_JWK
+        sync: false
+      - key: OKTA_DB_RESOURCE_INDICATOR
+        sync: false
