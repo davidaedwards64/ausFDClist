@@ -77,13 +77,13 @@ async def exchange_id_token_for_vaulted_secret(
             _parts = user_id_token.split('.')
             _pad = _parts[1] + '=' * (-len(_parts[1]) % 4)
             _claims = json.loads(_b64.urlsafe_b64decode(_pad))
-            logger.info("STS subject_token claims: iss=%s aud=%s exp=%s",
+            logger.warning("STS subject_token claims: iss=%s aud=%s exp=%s",
                         _claims.get('iss'), _claims.get('aud'), _claims.get('exp'))
         except Exception:
-            logger.info("STS subject_token: could not decode (not a JWT?), length=%d", len(user_id_token))
+            logger.warning("STS subject_token: could not decode (not a JWT?), length=%d", len(user_id_token))
 
         token_url = f"{settings.okta_domain}/oauth2/v1/token"
-        logger.info("STS token_url: %s", token_url)
+        logger.warning("STS token_url: %s", token_url)
         client_assertion = create_client_assertion_jwt(
             settings.okta_agent_client_id,
             settings.okta_agent_private_jwk,
