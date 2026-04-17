@@ -1,0 +1,66 @@
+flowchart LR
+    subgraph BROWSER["BROWSER"]
+        B1["signin.html\nSign in → /auth/start"]
+        B2["index.html\nauth.js ④  ·  app.js ⑤\nstreaming.js  ·  auth-steps.js"]
+    end
+
+    subgraph FASTAPI["FASTAPI BACKEND  (Render · Python / Uvicorn)"]
+        subgraph ROUTES["main.py"]
+            direction TB
+            R1["/auth/start  → redirect to Okta ②"]
+            R2["/auth/callback  ← code exchange ②"]
+            R3["/auth/logout  → clear session"]
+            R4["/api/me  → user from session ④"]
+            R5["/api/chat  → run_agent() ⑤"]
+        end
+        subgraph AGENT["agent.py  (agentic SSE loop)"]
+            direction TB
+            AG["1. yield session event\n2. token_exchange →③  (cached per session)\n3. call Claude API →⑥  (tool-use loop)\n4. tool dispatch →⑦"]
+        end
+        subgraph STSMOD["auth/okta_sts.py"]
+            direction TB
+            ST["Signs RS256 client_assertion JWT\nPOSTs token exchange to Okta STS\nIn-memory cache  (TTL = expires_in s)"]
+        end
+        subgraph HDLRS["handlers.py  (tool handlers)"]
+            direction TB
+            HD["search_covers · search_issues · get_cover_details\nget_issue_with_covers · get_statistics · list_available_sources\nEach: _get_db_creds() → _php_post()"]
+        end
+    end
+
+    subgraph OKTA["② OKTA  (OIDC Auth Server)"]
+        OK["/v1/authorize  ·  /v1/token\nAuthorization Code · confidential client"]
+    end
+
+    subgraph OKTASTS["③ OKTA STS"]
+        OKS["/oauth2/v1/token\ngrant: token-exchange  (RFC 8693)\nsubject_token: user id_token\nclient_assertion: RS256 JWT  (agent JWK)"]
+    end
+
+    subgraph VAULT["OPA VAULT  (Okta Privileged Access)"]
+        OV["Managed Connection: ausFDClist-DB-Creds\nvaulted_secret { username, password }"]
+    end
+
+    subgraph ANTHROPIC["⑥ ANTHROPIC API"]
+        AN["claude-sonnet-4-5\ntool use · streaming"]
+    end
+
+    subgraph PHPAPI["⑦ PHP API  (davidaedwards.com/ausfdclist)"]
+        PH["api.php\nPOST body: action + params + db_user + db_pass\nnew PDO connection per request"]
+    end
+
+    subgraph MYSQL["MySQL DATABASE"]
+        MY["Covers  ·  Issues  ·  Stamps"]
+    end
+
+    BROWSER -- "HTTPS  (session cookie) ①" --> FASTAPI
+    FASTAPI -- "SSE ⑤  ndjson" --> BROWSER
+    FASTAPI -- "② redirect" --> OKTA
+    OKTA -- "② auth code / tokens" --> FASTAPI
+    FASTAPI -- "③ token exchange" --> OKTASTS
+    OKTASTS -- "retrieves credentials" --> VAULT
+    VAULT --> OKTASTS
+    OKTASTS -- "③ vaulted_secret" --> FASTAPI
+    FASTAPI -- "⑥ messages + tools" --> ANTHROPIC
+    ANTHROPIC -- "⑥ streamed response" --> FASTAPI
+    FASTAPI -- "⑦ POST action + creds" --> PHPAPI
+    PHPAPI --> MYSQL
+    MYSQL --> PHPAPI
