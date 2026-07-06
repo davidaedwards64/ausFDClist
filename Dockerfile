@@ -5,7 +5,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --target /app/.python-deps -r requirements.txt
 
 # Runtime: Wolfi-based final stage as required by OAP
-FROM cgr.dev/chainguard/wolfi-base
+FROM cgr.dev/chainguard/wolfi-base@sha256:b78bb982194828b6c9c214230bf34d51944e2102ea8468f01ac21e5f99328efd
 RUN apk add --no-cache python-3.12
 WORKDIR /app
 COPY --from=build /app/.python-deps /app/.python-deps
