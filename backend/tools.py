@@ -194,7 +194,11 @@ TOOLS = [
             "Use this when the user asks about current or upcoming Australia Post stamp releases, "
             "what's new from Australia Post, or wants information that may not yet be in the "
             "local FDC database. "
-            "Results come from the live website and may differ from the local database."
+            "Results come from the live website and may differ from the local database. "
+            "IMPORTANT LIMITATION: the website returns at most 20 issues per page regardless "
+            "of filters. Australia Post typically releases 25-26 issues per year, so a year "
+            "search may be missing 5-6 issues. This is a website constraint that cannot be "
+            "worked around. Always inform the user of this limitation when returning year-filtered results."
         ),
         "input_schema": {
             "type": "object",
