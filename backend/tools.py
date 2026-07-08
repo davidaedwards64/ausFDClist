@@ -205,7 +205,7 @@ TOOLS = [
                 },
                 "year": {
                     "type": "string",
-                    "description": "Filter by 4-digit year (e.g. '2024').",
+                    "description": "Filter by 4-digit year (e.g. '2024'). The Australia Post website only lists issues back to 2014; earlier years return no results.",
                 },
                 "limit": {
                     "type": "integer",
