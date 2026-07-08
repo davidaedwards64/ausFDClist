@@ -269,10 +269,12 @@ async def handle_search_auspost_issues(
     text_filter = (args.get("text") or "").lower().strip()
     limit = min(int(args.get("limit", 20)), 50)
 
-    params = {"year": str(year)} if year else {}
+    # Year filtering uses dot-suffix path, not a query param
+    # e.g. /stamp-issues/view-all-stamp-issues.2024
+    url = f"{_AUSPOST_ISSUES_URL}.{year}" if year else _AUSPOST_ISSUES_URL
 
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-        response = await client.get(_AUSPOST_ISSUES_URL, params=params)
+        response = await client.get(url)
         response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -318,13 +320,13 @@ async def handle_search_auspost_issues(
 
     return {
         "source": "Australia Post Collectables website (live)",
-        "source_url": _AUSPOST_ISSUES_URL,
+        "source_url": url,
         "count": len(issues),
         "issues": issues,
         "note": (
             "Results are scraped live from collectables.auspost.com.au. "
-            "The page shows the most recent issues; older issues may require "
-            "year filtering to appear."
+            "Without a year filter the page shows only the most recent issues. "
+            "Use the year parameter to retrieve a specific year's full listing."
         ),
     }
 
