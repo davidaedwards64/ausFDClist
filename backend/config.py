@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     okta_issuer: str = ""
     okta_domain: str = ""
     okta_redirect_uri: str = "http://localhost:8000/auth/callback"
+    okta_end_session_url: str = ""          # e.g. https://<domain>/oauth2/v1/logout
+    okta_post_logout_redirect_uri: str = "" # e.g. https://<your-app>/auth/signin
     okta_agent_client_id: str = ""
     okta_agent_private_jwk: str = ""
     okta_db_resource_indicator: str = ""

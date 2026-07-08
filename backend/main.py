@@ -3,6 +3,7 @@
 import base64
 import json
 import secrets
+import time
 import urllib.parse
 from pathlib import Path
 
@@ -70,6 +71,7 @@ async def auth_start(request: Request):
         "scope":         "openid email profile",
         "redirect_uri":  s.okta_redirect_uri,
         "state":         state,
+        "prompt":        "login",
     })
     return RedirectResponse(f"{s.okta_issuer}/v1/authorize?{params}")
 
@@ -126,7 +128,17 @@ async def auth_callback(
 
 @app.get("/auth/logout")
 async def auth_logout(request: Request):
+    id_token = request.session.get("id_token", "")
     request.session.clear()
+
+    s = get_settings()
+    if id_token and s.okta_end_session_url and s.okta_post_logout_redirect_uri:
+        params = urllib.parse.urlencode({
+            "id_token_hint":            id_token,
+            "post_logout_redirect_uri": s.okta_post_logout_redirect_uri,
+        })
+        return RedirectResponse(f"{s.okta_end_session_url}?{params}")
+
     return RedirectResponse("/auth/signin")
 
 
