@@ -185,6 +185,38 @@ TOOLS = [
         },
     },
     {
+        "name": "search_auspost_issues",
+        "description": (
+            "Search stamp issues listed on the official Australia Post Collectables website "
+            "(collectables.auspost.com.au/stamp-issues). "
+            "Returns live data scraped directly from the site: issue title, release date, "
+            "URL, and stamp image. "
+            "Use this when the user asks about current or upcoming Australia Post stamp releases, "
+            "what's new from Australia Post, or wants information that may not yet be in the "
+            "local FDC database. "
+            "Results come from the live website and may differ from the local database."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "Filter results by title keyword (case-insensitive).",
+                },
+                "year": {
+                    "type": "string",
+                    "description": "Filter by 4-digit year (e.g. '2024').",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (default 20, max 50).",
+                    "default": 20,
+                },
+            },
+            "required": [],
+        },
+    },
+    {
         "name": "list_available_sources",
         "description": (
             "List all known cover source codes with their full names and UI colors. "

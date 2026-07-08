@@ -1,9 +1,11 @@
 """Tool execution handlers — async httpx calls to the PHP API."""
 
 import logging
+import re
 from typing import Any, Dict, Optional
 
 import httpx
+from bs4 import BeautifulSoup
 
 from backend.auth.okta_sts import exchange_id_token_for_vaulted_secret
 from backend.config import get_settings
@@ -252,6 +254,81 @@ async def handle_list_available_sources(
     }
 
 
+_AUSPOST_BASE = "https://collectables.auspost.com.au"
+_AUSPOST_ISSUES_URL = f"{_AUSPOST_BASE}/stamp-issues/view-all-stamp-issues"
+_DATE_RE = re.compile(r"^\d{1,2}\s+\w+\s+\d{4}$")
+_ISSUE_HREF_RE = re.compile(r"^/stamp-issues/view-all-stamp-issues/")
+
+
+async def handle_search_auspost_issues(
+    args: Dict[str, Any],
+    user_id_token: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> Any:
+    year = args.get("year")
+    text_filter = (args.get("text") or "").lower().strip()
+    limit = min(int(args.get("limit", 20)), 50)
+
+    params = {"year": str(year)} if year else {}
+
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        response = await client.get(_AUSPOST_ISSUES_URL, params=params)
+        response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    issues = []
+    for li in soup.find_all("li"):
+        h3 = li.find("h3")
+        if not h3:
+            continue
+
+        title = h3.get_text(strip=True)
+
+        date_str = None
+        for s in li.stripped_strings:
+            if _DATE_RE.match(s):
+                date_str = s
+                break
+
+        link = li.find("a", href=_ISSUE_HREF_RE)
+        issue_url = (_AUSPOST_BASE + link["href"]) if link else None
+
+        img = li.find("img")
+        image_url = None
+        if img and img.get("src"):
+            src = img["src"]
+            image_url = (_AUSPOST_BASE + src) if src.startswith("/") else src
+
+        # Skip navigation/category list items (no date and no issue link)
+        if not date_str and not issue_url:
+            continue
+
+        issues.append({
+            "title": title,
+            "date": date_str,
+            "url": issue_url,
+            "image_url": image_url,
+        })
+
+    if text_filter:
+        issues = [i for i in issues if text_filter in i["title"].lower()]
+
+    issues = issues[:limit]
+
+    return {
+        "source": "Australia Post Collectables website (live)",
+        "source_url": _AUSPOST_ISSUES_URL,
+        "count": len(issues),
+        "issues": issues,
+        "note": (
+            "Results are scraped live from collectables.auspost.com.au. "
+            "The page shows the most recent issues; older issues may require "
+            "year filtering to appear."
+        ),
+    }
+
+
 TOOL_HANDLERS = {
     "search_covers": handle_search_covers,
     "search_issues": handle_search_issues,
@@ -259,4 +336,5 @@ TOOL_HANDLERS = {
     "get_issue_with_covers": handle_get_issue_with_covers,
     "get_statistics": handle_get_statistics,
     "list_available_sources": handle_list_available_sources,
+    "search_auspost_issues": handle_search_auspost_issues,
 }
