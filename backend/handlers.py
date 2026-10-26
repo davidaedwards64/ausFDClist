@@ -134,7 +134,13 @@ async def _php_post(
     if db_pass is not None:
         body["db_pass"] = db_pass
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    # HostGator's bot protection answers non-browser clients with a 409 JS challenge that
+    # sets this cookie. Sending it up front gets past the challenge (see docs/hostgator-bot-challenge.md).
+    cookies = {}
+    if settings.php_api_challenge_cookie_name:
+        cookies[settings.php_api_challenge_cookie_name] = settings.php_api_challenge_cookie_value
+
+    async with httpx.AsyncClient(timeout=30.0, cookies=cookies) as client:
         response = await client.post(url, json=body)
         response.raise_for_status()
         return response.json()

@@ -5,6 +5,9 @@ from functools import lru_cache
 class Settings(BaseSettings):
     anthropic_api_key: str
     php_api_base_url: str = "https://davidaedwards.com/ausfdclist"
+    # HostGator bot-challenge cookie (name has a site-specific number; set name to "" to disable)
+    php_api_challenge_cookie_name: str = "humans_21909"
+    php_api_challenge_cookie_value: str = "1"
     model: str = "claude-haiku-4-5-20251001"
     max_tokens: int = 4096
     okta_client_id: str = ""
