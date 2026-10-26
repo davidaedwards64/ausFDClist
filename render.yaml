@@ -13,7 +13,7 @@ services:
         value: https://davidaedwards.com/ausfdclist
       - key: OKTA_CLIENT_ID
         sync: false
-      - key: OKTA_CLIENT_SECRET
+      - key: OKTA_CLIENT_SECRET   # optional - leave blank when the Okta app uses Public key / Private key auth
         sync: false
       - key: SESSION_SECRET
         sync: false

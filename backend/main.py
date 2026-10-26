@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from backend.agent import run_agent
+from backend.auth.okta_sts import create_client_assertion_jwt
 from backend.config import get_settings
 from backend.schemas import ChatRequest, HealthResponse, UserResponse
 
@@ -94,16 +95,27 @@ async def auth_callback(
         return RedirectResponse("/auth/signin?error=State+mismatch+%E2%80%94+please+try+again")
 
     s = get_settings()
+    token_url = f"{s.okta_issuer}/v1/token"
+    token_data = {
+        "grant_type":   "authorization_code",
+        "client_id":    s.okta_client_id,
+        "redirect_uri": s.okta_redirect_uri,
+        "code":         code,
+    }
+    if s.okta_client_secret:
+        # client_secret_post — for an app whose Okta client auth is "Client secret"
+        token_data["client_secret"] = s.okta_client_secret
+    elif s.okta_agent_private_jwk:
+        # private_key_jwt — for an app (e.g. linked to an AI Agent) whose Okta client auth
+        # is "Public key / Private key". aud must be this exact token endpoint URL.
+        token_data["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        token_data["client_assertion"] = create_client_assertion_jwt(
+            s.okta_client_id, s.okta_agent_private_jwk, token_url
+        )
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(
-            f"{s.okta_issuer}/v1/token",
-            data={
-                "grant_type":    "authorization_code",
-                "client_id":     s.okta_client_id,
-                "client_secret": s.okta_client_secret,
-                "redirect_uri":  s.okta_redirect_uri,
-                "code":          code,
-            },
+            token_url,
+            data=token_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 

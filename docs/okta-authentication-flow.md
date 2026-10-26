@@ -23,7 +23,7 @@ return RedirectResponse(f"{s.okta_issuer}/v1/authorize?{params}")
 
 **`backend/main.py` — Handle callback (`/auth/callback`, lines 77-124):**
 - Validates the `state` parameter (CSRF check)
-- Posts the authorization `code` to Okta's `/v1/token` endpoint, using `client_secret` on the server side
+- Posts the authorization `code` to Okta's `/v1/token` endpoint, authenticating server-side with either `client_secret` (if `OKTA_CLIENT_SECRET` is set) or a signed `client_assertion` JWT (private_key_jwt, using `OKTA_AGENT_PRIVATE_JWK`) when the Okta app is set to Public key / Private key
 - Decodes the returned `id_token` JWT (no signature verification needed — Okta sent it directly)
 - Stores `{id_token, user: {email, name, sub}}` in an encrypted, HTTP-only session cookie
 
@@ -159,7 +159,7 @@ If configuring an Okta **post-logout redirect URI**, point it to `/auth/signin` 
 
 ## Key Security Properties
 
-- The client secret never leaves the server
+- The client secret / private key never leaves the server
 - CSRF is prevented via the `state` parameter
 - Session cookies are encrypted and HTTP-only
 - DB credentials are just-in-time and short-lived per user session

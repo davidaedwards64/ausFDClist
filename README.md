@@ -176,7 +176,7 @@ Edit `.env` and fill in all required values:
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
 | `PHP_API_BASE_URL` | Yes | Base URL of the PHP API (no trailing slash) |
 | `OKTA_CLIENT_ID` | Yes | OIDC Web App client ID |
-| `OKTA_CLIENT_SECRET` | Yes | OIDC Web App client secret |
+| `OKTA_CLIENT_SECRET` | Optional | OIDC Web App client secret. Leave unset if the Okta app uses **Public key / Private key** client auth (e.g. linked to an AI Agent) — sign-in then authenticates with `OKTA_AGENT_PRIVATE_JWK` |
 | `OKTA_ISSUER` | Yes | Okta issuer URL (e.g. `https://your-org.okta.com/oauth2/default`) |
 | `OKTA_DOMAIN` | Yes | Okta org base URL (e.g. `https://your-org.okta.com`) |
 | `OKTA_REDIRECT_URI` | Yes | `http://localhost:8000/auth/callback` for local dev |
