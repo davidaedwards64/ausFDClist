@@ -33,3 +33,11 @@ and update the cookie name/value from the returned script.
 Ask HostGator support (or check cPanel for Imunify360/security settings) to whitelist the hosting
 platform's outbound IPs (Render: service Connect > Outbound; OAP: ask the platform team), then
 remove the workaround.
+
+## Images
+Browser `<img>` requests to `https://davidaedwards.com/ausfdclist/images/...` hit the same 409 challenge
+and show as broken images (an `<img>` can't run the challenge script). Images are therefore served through
+the backend proxy `GET /img/{year}/{filename}` (`backend/main.py`), which fetches from HostGator with the
+challenge cookie. `coverImgUrl` / `stampImgUrl` in `frontend/js/streaming.js` build `/img/...` URLs.
+The route only accepts `[A-Za-z0-9_.-]` in both path parts, returns only `image/*` responses, and sends
+`Cache-Control: public, max-age=86400`.

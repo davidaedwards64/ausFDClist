@@ -2,14 +2,15 @@
 
 import base64
 import json
+import re
 import secrets
 import time
 import urllib.parse
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -166,6 +167,38 @@ async def api_me(request: Request):
             status_code=401,
         )
     return {"authenticated": True, **user}
+
+
+_IMG_PATH_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
+
+
+@app.get("/img/{year}/{filename}")
+async def proxy_image(year: str, filename: str):
+    """Fetch a cover/stamp image from the PHP host server-side.
+
+    HostGator answers browser <img> requests with a 409 JS challenge, so the browser can't load
+    the images directly. Fetching here lets us send the challenge cookie (see docs/hostgator-bot-challenge.md).
+    """
+    if not (_IMG_PATH_RE.match(year) and _IMG_PATH_RE.match(filename)) or ".." in (year + filename):
+        raise HTTPException(status_code=400, detail="Invalid image path")
+    s = get_settings()
+    cookies = {}
+    if s.php_api_challenge_cookie_name:
+        cookies[s.php_api_challenge_cookie_name] = s.php_api_challenge_cookie_value
+    url = f"{s.php_api_base_url}/images/{year}/{filename}"
+    try:
+        async with httpx.AsyncClient(timeout=15.0, cookies=cookies) as client:
+            resp = await client.get(url)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Image fetch failed")
+    content_type = resp.headers.get("content-type", "")
+    if resp.status_code != 200 or not content_type.startswith("image/"):
+        raise HTTPException(status_code=404 if resp.status_code == 404 else 502, detail="Image unavailable")
+    return Response(
+        content=resp.content,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @app.get("/api/health", response_model=HealthResponse)

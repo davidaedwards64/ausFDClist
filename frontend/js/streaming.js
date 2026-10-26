@@ -9,21 +9,20 @@
  */
 
 window.FDCStream = (() => {
-  const PHP_BASE = 'https://davidaedwards.com/ausfdclist';
-
   // ── Image URL helpers ────────────────────────────────────────────────────
   // Cover images are stored in year-based subdirectories: images/{year}/{filename}
+  // Images are served via the backend /img proxy (HostGator blocks direct browser <img> loads).
   function coverImgUrl(filename, coverId) {
     if (!filename) return null;
     const year = coverId ? coverId.substring(0, 4) : '';
     return year
-      ? `${PHP_BASE}/images/${year}/${filename}`
-      : `${PHP_BASE}/images/${filename}`;
+      ? `/img/${year}/${encodeURIComponent(filename)}`
+      : `/img/${encodeURIComponent(filename.substring(0, 4))}/${encodeURIComponent(filename)}`;
   }
   function stampImgUrl(filename) {
     if (!filename) return null;
     const year = filename.substring(0, 4);
-    return `${PHP_BASE}/images/${year}/${filename}`;
+    return `/img/${year}/${encodeURIComponent(filename)}`;
   }
 
   // ── Source code → badge CSS class ───────────────────────────────────────
